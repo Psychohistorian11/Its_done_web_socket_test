@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Task" ADD COLUMN     "color" TEXT NOT NULL DEFAULT '#FFFFFF',
+ADD COLUMN     "description" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "name" TEXT NOT NULL DEFAULT 'Untitled';

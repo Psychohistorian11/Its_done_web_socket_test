@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function NavUser({
   user,
@@ -37,23 +38,42 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const [notificationsNumber, setNotificationsNumber] = useState<number>(0);
+  const router = useRouter();
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:3001");
+    const fetchNotificationsNumber = async () => {
+      try {
+        const response = await fetch(`/api/notification?count=${true}`);
 
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
+        if (!response.ok) {
+          console.error("Error fetching notifications");
+          return;
+        }
 
-      if (message.type === "TASK_EXPIRED") {
-        setNotifications((prev) => [
-          ...prev,
-          `Tarea vencida: ${message.task.dueTime}`,
-        ]);
+        const data = await response.json();
+        setNotificationsNumber(data.count);
+      } catch (error) {
+        console.error("Error fetching notifications", error);
       }
     };
 
-    return () => ws.close();
+    fetchNotificationsNumber();
+
+    const socket = new WebSocket("ws://localhost:3001");
+
+    socket.onopen = () => {
+      console.log("✅ Conectado al WebSocket");
+    };
+
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+
+      if (message.type === "NOTIFICATION") {
+        setNotificationsNumber((prev) => prev + 1);
+      }
+    };
+    return () => socket.close();
   }, []);
 
   return (
@@ -73,8 +93,14 @@ export function NavUser({
                 <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
+              {notificationsNumber > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-bl-lg">
+                  {notificationsNumber}
+                </span>
+              )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
             side={isMobile ? "bottom" : "right"}
@@ -109,16 +135,17 @@ export function NavUser({
                 <CreditCard />
                 Billing
               </DropdownMenuItem>
-              <div className="relative">
-                <SidebarMenuButton className="flex items-center">
-                  <Bell className="cursor-pointer text-white" />
-                  {notifications.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {notifications.length}
-                    </span>
-                  )}
-                </SidebarMenuButton>
-              </div>
+              <DropdownMenuItem
+                onClick={() => router.push(`/task/notification/${"Cristian"}`)}
+              >
+                <Bell />
+                <div>Notifications</div>
+                {notificationsNumber > 0 && (
+                  <span className="absolute -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-l-sm">
+                    {notificationsNumber}
+                  </span>
+                )}
+              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>

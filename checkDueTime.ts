@@ -1,26 +1,34 @@
-import { notifyDueTimeExpired } from "./server";
 import dayjs from "dayjs";
-import prismadb from "@/lib/prismadb";
+import prismadb from "./src/lib/prismadb";
 
 async function checkDueTasks() {
   const now = dayjs().toISOString();
 
-  // Buscar tareas cuyo dueTime ya haya pasado
   const expiredTasks = await prismadb.task.findMany({
     where: {
       dueTime: { lt: now },
-      notified: false, // Para evitar notificar la misma tarea varias veces
+      notified: false,
     },
   });
 
-  for (const task of expiredTasks) {
-    notifyDueTimeExpired(task); // Enviar notificación al WebSocket
+  if (expiredTasks.length > 0) {
+    const { notifyDueTimeExpired } = await import("./server.js");
+    for (const task of expiredTasks) {
+      const notification = await prismadb.notification.create({
+        data: {
+          message: `Tarea ${task.id} vencida el ${task.dueTime.toISOString()}`,
+          userId: "Cristian",
+          taskId: task.id,
+        },
+      });
 
-    // Marcar la tarea como notificada para no enviarla de nuevo
-    await prismadb.task.update({
-      where: { id: task.id },
-      data: { notified: true },
-    });
+      await prismadb.task.update({
+        where: { id: task.id },
+        data: { notified: true },
+      });
+
+      notifyDueTimeExpired(notification, task);
+    }
   }
 }
 

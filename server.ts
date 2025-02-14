@@ -1,14 +1,16 @@
-import { WebSocketServer } from "ws";
-import { createServer } from "http";
-import prismadb from "@/lib/prismadb";
-import dayjs from "dayjs";
+import { WebSocketServer, WebSocket } from "ws";
+import { createServer, Server } from "http";
+import "./checkDueTime.js";
+import { AppNotification } from "@/interfaces/notification.js";
 
-const server = createServer();
+type Task = { id: number; notified: boolean; dueTime: Date };
+
+const server: Server = createServer();
 const wss = new WebSocketServer({ server });
 
-const clients = new Set<WebSocket>();
+const clients: Set<WebSocket> = new Set();
 
-wss.on("connection", (ws: any) => {
+wss.on("connection", (ws: WebSocket) => {
   console.log("🔗 Cliente conectado");
   clients.add(ws);
 
@@ -18,14 +20,22 @@ wss.on("connection", (ws: any) => {
   });
 });
 
-// Función para notificar cuando una tarea expira
-export function notifyDueTimeExpired(task: any) {
-  const message = JSON.stringify({ type: "TASK_EXPIRED", task });
-  clients.forEach((client) => client.send(message));
+export function notifyDueTimeExpired(
+  notification: AppNotification,
+  task: Task
+): void {
+  const message = JSON.stringify({ type: "NOTIFICATION", notification, task });
+
+  clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
 }
 
-// Iniciar el servidor WebSocket en un puerto específico
-const PORT = 3001;
+const PORT: number = Number(process.env.PORT) || 3001;
 server.listen(PORT, () => {
-  console.log(`🚀 WebSocket corriendo en wss://localhost:${PORT}`);
+  console.log(`🚀 WebSocket corriendo en ws://localhost:${PORT}`);
 });
+
+console.log("⚡ Servidor iniciado correctamente, preparando intervalos...");

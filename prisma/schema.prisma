@@ -17,5 +17,26 @@ datasource db {
 model Task {
   id        Int      @id @default(autoincrement())
   dueTime   DateTime
-  notified  Boolean  @default(false) // Asegúrate de que está aquí
+  notified  Boolean  @default(false) 
+  icon        String   @default("📝") // Valor por defecto
+   name        String   @default("Untitled") // Valor por defecto
+  color       String   @default("#FFFFFF")  // Color por defecto
+  description String   @default("")   
+
+  notification Notification[]
 }
+
+model Notification {
+  id        String @id @default(uuid())
+  message   String
+  createdAt DateTime @default(now())
+  read      Boolean @default(false)
+
+  userId    String
+  taskId    Int?
+  //user      User @relation(fields: [userId], references: [id])
+  task      Task? @relation(fields: [taskId], references: [id])
+
+
+}
+
