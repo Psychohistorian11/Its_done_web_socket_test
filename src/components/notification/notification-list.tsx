@@ -26,13 +26,12 @@ export function NotificationListDemo() {
 
   const handleTaskClick = (taskId: number) => {
     console.log("Redirigiendo a la tarea con ID:", taskId);
-    // Aquí iría la lógica de navegación o manejo de la tarea
   };
 
   return (
     <div className="w-full  bg-white border rounded-lg shadow-md">
       <div className="p-4 border-b font-semibold text-lg text-gray-700">
-        Notificaciones
+        Notifications
       </div>
       <div className="divide-y">
         {notifications.length > 0 ? (
